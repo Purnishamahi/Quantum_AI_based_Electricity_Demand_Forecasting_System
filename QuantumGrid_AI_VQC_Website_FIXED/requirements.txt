@@ -3,4 +3,7 @@ numpy
 pandas
 pyarrow
 pennylane==0.45.1
+flask-cors
 gunicorn
+scikit-learn
+matplotlib
