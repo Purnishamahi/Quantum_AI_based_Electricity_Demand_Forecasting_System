@@ -1,0 +1,152 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QuantumGrid AI — Electricity Demand Forecasting</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Arial,sans-serif;background:#07111f;color:#eef4ff}
+.container{width:min(1120px,92%);margin:auto;padding:42px 0 70px}
+h1{font-size:42px;margin:0 0 8px}
+.subtitle{color:#9fb0c9;margin-bottom:34px}
+.controls{display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:end}
+label{display:block;color:#aebdd2;font-size:14px;margin-bottom:8px}
+input{width:100%;padding:14px 16px;border:1px solid #263851;border-radius:12px;background:#0d1b2d;color:#fff;font-size:16px}
+button{padding:14px 24px;border:0;border-radius:12px;background:#6c63ff;color:white;font-weight:700;font-size:15px;cursor:pointer}
+button:hover{opacity:.9}
+.card{margin-top:28px;padding:26px;border:1px solid #20334d;background:#0b192a;border-radius:18px}
+.hidden{display:none}
+.pred-label{color:#9fb0c9}
+.pred{font-size:38px;font-weight:800;margin-top:8px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:18px}
+.day{padding:16px 10px;border:1px solid #263851;background:#101f32;color:#dce8f7;border-radius:14px;cursor:pointer;text-align:center}
+.day.active{border-color:#8078ff;background:#171d3d}
+.day small{display:block;color:#8fa3bd;margin-top:5px}
+.chart-wrap{height:370px;margin-top:20px}
+.section-title{font-size:20px;font-weight:700}
+.note{color:#8396b0;font-size:13px;margin-top:14px;line-height:1.5}
+@media(max-width:750px){.controls{grid-template-columns:1fr}.days{grid-template-columns:repeat(2,1fr)}h1{font-size:31px}}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>QUANTUMGRID AI</h1>
+  <div class="subtitle">Electricity Demand Forecasting</div>
+
+  <div class="controls">
+    <div>
+      <label>Forecast Date</label>
+      <input id="date" type="date" min="{{min_date}}" max="{{max_date}}">
+    </div>
+    <div>
+      <label>Forecast Time</label>
+      <input id="time" type="time" value="14:00">
+    </div>
+    <button onclick="predict()">PREDICT</button>
+  </div>
+
+  <div id="result" class="hidden">
+    <div class="card">
+      <div class="pred-label">Predicted Electricity Demand</div>
+      <div id="prediction" class="pred">— MWh</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">7-DAY FORECAST</div>
+      <div id="days" class="days"></div>
+      <div class="chart-wrap"><canvas id="weekChart"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title" id="selectedTitle">24-HOUR FORECAST</div>
+      <div class="chart-wrap"><canvas id="dayChart"></canvas></div>
+      <div class="note">Hover over the graph points to see the predicted electricity demand in MWh.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let data=[], weekChart=null, dayChart=null;
+
+function fmt(n){return Number(n).toLocaleString(undefined,{maximumFractionDigits:0})}
+
+async function predict(){
+  const date=document.getElementById('date').value;
+  const time=document.getElementById('time').value;
+  if(!date||!time){alert("Please select date and time.");return;}
+
+  const btn=document.querySelector("button");
+  btn.disabled=true; btn.textContent="PREDICTING...";
+
+  try{
+    const res=await fetch("/api/predict",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({date,time})
+    });
+    const json=await res.json();
+    if(!res.ok) throw new Error(json.error||"Prediction failed");
+
+    data=json.forecast;
+    document.getElementById("prediction").textContent=fmt(json.selected.predicted_mwh)+" MWh";
+    document.getElementById("result").classList.remove("hidden");
+
+    buildDays();
+    drawWeek();
+    selectDay(json.selected.date);
+  }catch(e){alert(e.message)}
+  finally{btn.disabled=false;btn.textContent="PREDICT";}
+}
+
+function buildDays(){
+  const unique=[...new Set(data.map(x=>x.date))].slice(0,7);
+  const box=document.getElementById("days");
+  box.innerHTML="";
+  unique.forEach(d=>{
+    const b=document.createElement("div");
+    b.className="day";
+    b.dataset.date=d;
+    const dt=new Date(d+"T00:00:00");
+    b.innerHTML=`<strong>${dt.toLocaleDateString(undefined,{day:"2-digit",month:"short"})}</strong><small>${dt.toLocaleDateString(undefined,{weekday:"short"})}</small>`;
+    b.onclick=()=>selectDay(d);
+    box.appendChild(b);
+  });
+}
+
+function drawWeek(){
+  const daily={};
+  data.forEach(x=>{
+    if(!daily[x.date]) daily[x.date]=[];
+    daily[x.date].push(x.predicted_mwh);
+  });
+  const labels=Object.keys(daily);
+  const vals=labels.map(d=>daily[d].reduce((a,b)=>a+b,0)/daily[d].length);
+
+  if(weekChart)weekChart.destroy();
+  weekChart=new Chart(document.getElementById("weekChart"),{
+    type:"line",
+    data:{labels,datasets:[{label:"Average predicted demand (MWh)",data:vals,tension:.3,pointRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{tooltip:{callbacks:{label:c=>" "+fmt(c.raw)+" MWh"}}}}
+  });
+}
+
+function selectDay(date){
+  document.querySelectorAll(".day").forEach(x=>x.classList.toggle("active",x.dataset.date===date));
+  const rows=data.filter(x=>x.date===date);
+  document.getElementById("selectedTitle").textContent=`24-HOUR FORECAST — ${date}`;
+
+  if(dayChart)dayChart.destroy();
+  dayChart=new Chart(document.getElementById("dayChart"),{
+    type:"line",
+    data:{labels:rows.map(x=>x.time),datasets:[{label:"Predicted demand (MWh)",data:rows.map(x=>x.predicted_mwh),tension:.3,pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{tooltip:{callbacks:{label:c=>" "+fmt(c.raw)+" MWh"}}}}
+  });
+}
+</script>
+</body>
+</html>

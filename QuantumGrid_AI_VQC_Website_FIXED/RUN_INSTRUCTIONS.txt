@@ -1,0 +1,40 @@
+# IMPORTANT — How to run QuantumGrid AI
+
+## Why "Failed to fetch" appears
+
+Do NOT double-click `index.html`.
+
+The website calls the Python Flask backend at `/api/predict`. If you open the HTML directly with `file://`, there is no backend, so the browser shows **Failed to fetch**.
+
+## Windows — easiest method
+
+1. Extract this ZIP completely.
+2. Open the extracted `quantumgrid_ai` folder.
+3. Double-click `run.bat`.
+4. Wait for Flask to start.
+5. Your browser will open:
+   http://127.0.0.1:5000
+6. Keep the black/command window open while using the website.
+
+The first run may take time because Python packages are installed.
+
+## If `run.bat` does not work
+
+Open Command Prompt in the project folder and run:
+
+```text
+python -m pip install -r requirements.txt
+python app.py
+```
+
+Then open:
+
+```text
+http://127.0.0.1:5000
+```
+
+## Do not
+
+- Do not open `templates/index.html` directly.
+- Do not use `file:///.../index.html`.
+- Do not retrain the VQC.

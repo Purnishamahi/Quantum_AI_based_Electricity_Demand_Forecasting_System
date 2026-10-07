@@ -1,0 +1,181 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quantum AI Based Electricity Demand Forecasting System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+  --bg:#f2f4f1; --surface:#ffffff; --surface-2:#f6f8f5; --ink:#14262e; --muted:#5d6f75;
+  --line:#dbe2dd; --accent:#0f6b64; --accent-dark:#0a524c; --accent-soft:#e1efec; --amber:#c98a2b;
+  --shadow:0 1px 2px rgba(20,38,46,.05),0 8px 24px rgba(20,38,46,.06);
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:Manrope,system-ui,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;
+  background-image:radial-gradient(1200px 400px at 50% -120px,#e3ece8 0,transparent 70%)}
+.container{width:min(1120px,92%);margin:auto;padding:56px 0 80px}
+h1{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:clamp(30px,4.4vw,46px);line-height:1.12;margin:0 0 12px;max-width:20ch;letter-spacing:-.01em;animation:rise .7s var(--ease) both}
+.subtitle{color:var(--muted);margin-bottom:34px;max-width:56ch;animation:rise .7s .1s var(--ease) both}
+.controls{display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:end;padding:22px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);animation:rise .7s .2s var(--ease) both}
+label{display:block;color:var(--muted);font-size:14px;font-weight:500;margin-bottom:8px}
+input{width:100%;padding:13px 15px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);font:500 16px Manrope,sans-serif;transition:border-color .25s,box-shadow .25s,background .25s}
+input:hover{border-color:#b9c7c1}
+input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 4px var(--accent-soft)}
+button{padding:14px 26px;border:0;border-radius:10px;background:var(--accent);color:#fff;font:700 15px Manrope,sans-serif;cursor:pointer;transition:background .25s,transform .2s var(--ease),box-shadow .25s}
+button:hover{background:var(--accent-dark);transform:translateY(-1px);box-shadow:0 6px 14px rgba(15,107,100,.25)}
+button:active{transform:translateY(0)}
+button:disabled{opacity:.7;cursor:progress;transform:none;box-shadow:none}
+button:focus-visible,.day:focus-visible{outline:3px solid var(--accent-soft);outline-offset:2px}
+.card{margin-top:24px;padding:26px;border:1px solid var(--line);background:var(--surface);border-radius:16px;box-shadow:var(--shadow)}
+.hidden{display:none}
+#result>.card{animation:rise .6s var(--ease) both}
+#result>.card:nth-child(2){animation-delay:.1s}
+#result>.card:nth-child(3){animation-delay:.2s}
+.pred-label{color:var(--muted);font-weight:500}
+.pred{font-family:Fraunces,Georgia,serif;font-size:clamp(34px,5vw,48px);font-weight:600;margin-top:6px;color:var(--accent)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:18px}
+.day{padding:14px 10px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:12px;cursor:pointer;text-align:center;transition:background .25s,border-color .25s,color .25s,transform .25s var(--ease),box-shadow .25s}
+.day:hover{border-color:var(--accent);transform:translateY(-2px)}
+.day.active{border-color:var(--accent);background:var(--accent);color:#fff;box-shadow:0 6px 14px rgba(15,107,100,.22)}
+.day small{display:block;color:var(--muted);margin-top:4px;transition:color .25s}
+.day.active small{color:#cfe6e2}
+.chart-wrap{height:370px;margin-top:20px}
+.section-title{font-family:Fraunces,Georgia,serif;font-size:22px;font-weight:600}
+.note{color:var(--muted);font-size:13px;margin-top:14px}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media(max-width:750px){.controls{grid-template-columns:1fr}.days{grid-template-columns:repeat(2,1fr)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Quantum AI Based Electricity Demand Forecasting System</h1>
+  <div class="subtitle">Pick a date and time to see the expected demand, the week ahead and the hourly curve.</div>
+
+  <div class="controls">
+    <div>
+      <label>Forecast Date</label>
+      <input id="date" type="date" min="{{min_date}}" max="{{max_date}}">
+    </div>
+    <div>
+      <label>Forecast Time</label>
+      <input id="time" type="time" value="14:00">
+    </div>
+    <button onclick="predict()">Predict demand</button>
+  </div>
+
+  <div id="result" class="hidden">
+    <div class="card">
+      <div class="pred-label">Predicted Electricity Demand</div>
+      <div id="prediction" class="pred">— MWh</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">7-day forecast</div>
+      <div id="days" class="days"></div>
+      <div class="chart-wrap"><canvas id="weekChart"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title" id="selectedTitle">24-hour forecast</div>
+      <div class="chart-wrap"><canvas id="dayChart"></canvas></div>
+      <div class="note">Hover over the graph points to see the predicted electricity demand in MWh.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let data=[], weekChart=null, dayChart=null;
+
+const C={line:"#0f6b64",fill:"rgba(15,107,100,.12)",grid:"#e6ebe7",text:"#5d6f75"};
+const baseOpts={responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+  animation:{duration:900,easing:"easeOutQuart"},
+  scales:{x:{grid:{display:false},ticks:{color:C.text}},y:{grid:{color:C.grid},ticks:{color:C.text}}},
+  plugins:{legend:{labels:{color:C.text,usePointStyle:true}},
+    tooltip:{backgroundColor:"#14262e",padding:10,cornerRadius:8,callbacks:{label:c=>" "+fmt(c.raw)+" MWh"}}}};
+const ds=(label,data,r)=>({label,data,tension:.35,borderColor:C.line,backgroundColor:C.fill,fill:true,borderWidth:2.5,
+  pointRadius:r,pointBackgroundColor:"#fff",pointBorderColor:C.line,pointBorderWidth:2,pointHoverRadius:6});
+function fmt(n){return Number(n).toLocaleString(undefined,{maximumFractionDigits:0})}
+
+async function predict(){
+  const date=document.getElementById('date').value;
+  const time=document.getElementById('time').value;
+  if(!date||!time){alert("Please select date and time.");return;}
+
+  const btn=document.querySelector("button");
+  btn.disabled=true; btn.textContent="Predicting...";
+
+  try{
+    const res=await fetch("/api/predict",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({date,time})
+    });
+    const json=await res.json();
+    if(!res.ok) throw new Error(json.error||"Prediction failed");
+
+    data=json.forecast;
+    document.getElementById("prediction").textContent=fmt(json.selected.predicted_mwh)+" MWh";
+    document.getElementById("result").classList.remove("hidden");
+
+    buildDays();
+    drawWeek();
+    selectDay(json.selected.date);
+  }catch(e){alert(e.message)}
+  finally{btn.disabled=false;btn.textContent="Predict demand";}
+}
+
+function buildDays(){
+  const unique=[...new Set(data.map(x=>x.date))].slice(0,7);
+  const box=document.getElementById("days");
+  box.innerHTML="";
+  unique.forEach(d=>{
+    const b=document.createElement("div");
+    b.className="day";b.tabIndex=0;b.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();selectDay(d)}};
+    b.dataset.date=d;
+    const dt=new Date(d+"T00:00:00");
+    b.innerHTML=`<strong>${dt.toLocaleDateString(undefined,{day:"2-digit",month:"short"})}</strong><small>${dt.toLocaleDateString(undefined,{weekday:"short"})}</small>`;
+    b.onclick=()=>selectDay(d);
+    box.appendChild(b);
+  });
+}
+
+function drawWeek(){
+  const daily={};
+  data.forEach(x=>{
+    if(!daily[x.date]) daily[x.date]=[];
+    daily[x.date].push(x.predicted_mwh);
+  });
+  const labels=Object.keys(daily);
+  const vals=labels.map(d=>daily[d].reduce((a,b)=>a+b,0)/daily[d].length);
+
+  if(weekChart)weekChart.destroy();
+  weekChart=new Chart(document.getElementById("weekChart"),{
+    type:"line",
+    data:{labels,datasets:[ds("Average predicted demand (MWh)",vals,4)]},
+    options:baseOpts
+  });
+}
+
+function selectDay(date){
+  document.querySelectorAll(".day").forEach(x=>x.classList.toggle("active",x.dataset.date===date));
+  const rows=data.filter(x=>x.date===date);
+  document.getElementById("selectedTitle").textContent=`24-hour forecast for ${date}`;
+
+  if(dayChart)dayChart.destroy();
+  dayChart=new Chart(document.getElementById("dayChart"),{
+    type:"line",
+    data:{labels:rows.map(x=>x.time),datasets:[ds("Predicted demand (MWh)",rows.map(x=>x.predicted_mwh),3)]},
+    options:baseOpts
+  });
+}
+</script>
+</body>
+</html>
