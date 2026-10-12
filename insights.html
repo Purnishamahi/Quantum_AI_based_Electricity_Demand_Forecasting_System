@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block theme %}theme-insights{% endblock %}
+{% block content %}
+<section class="pagehead">
+  <p class="eyebrow">Level 3 · Smart insights</p>
+  <h1>Forecast <span>Insights</span></h1>
+  <p>Understand the forecast using the same four model inputs, with no extra inputs added to the VQC.</p>
+  <a class="back" href="/">Back to forecast</a>
+</section>
+<section class="selector compact card">
+  <div><label for="date">Date</label><input id="date" type="date"></div>
+  <div><label for="time">Time</label><input id="time" type="time"></div>
+  <button onclick="loadInsights()">Analyze</button>
+</section>
+<section class="grid three">
+  <div class="stat card"><small>Demand change vs 24h ago</small><strong id="change"></strong><span>Current demand comparison</span></div>
+  <div class="stat card"><small>Expected peak</small><strong id="peak"></strong><span id="peaktime"></span></div>
+  <div class="stat card"><small>Forecast range</small><strong id="range"></strong><span>Next 24 hours</span></div>
+</section>
+<section class="card chartcard"><div class="card-title">Typical demand by hour</div><canvas id="profileChart"></canvas></section>
+{% endblock %}

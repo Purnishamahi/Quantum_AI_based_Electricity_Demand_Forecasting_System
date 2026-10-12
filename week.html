@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block theme %}theme-week{% endblock %}
+{% block content %}
+<section class="pagehead">
+  <p class="eyebrow">Level 3 · Extended forecast</p>
+  <h1>7-Day <span>Forecast</span></h1>
+  <p>One continuous 168-hour forecast from the same trained VQC, using recursive next-hour predictions.</p>
+  <a class="back" href="/">Back to forecast</a>
+</section>
+<section class="selector compact card">
+  <div><label for="date">Start date</label><input id="date" type="date"></div>
+  <div><label for="time">Start time</label><input id="time" type="time"></div>
+  <button onclick="loadWeek()">Generate 7 days</button>
+</section>
+<section id="dayCards" class="daycards"></section>
+<section class="card chartcard"><div class="card-title">7-day demand trend</div><canvas id="weekChart"></canvas></section>
+<section id="selectedDay" class="card chartcard hidden" style="--acc:var(--rose);--acc2:var(--sapphire)"><div class="card-title" id="selectedTitle">Selected day · 24 hours</div><canvas id="selectedChart"></canvas></section>
+{% endblock %}
