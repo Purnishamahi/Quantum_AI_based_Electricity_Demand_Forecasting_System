@@ -3,3 +3,7 @@ numpy>=1.26,<3
 pandas>=2.2,<3
 pyarrow>=16,<22
 PennyLane==0.45.1
+flask-cors
+gunicorn
+scikit-learn
+matplotlib
